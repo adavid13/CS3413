@@ -1,0 +1,89 @@
+22:57:56 **** Incremental Build of configuration Debug for project asgn8 ****
+Info: Internal Builder is used for build
+gcc -O0 -g3 -Wall -c -fmessage-length=0 -o asgn8V2.o "..\\asgn8V2.c" 
+gcc -O0 -g3 -Wall -c -fmessage-length=0 -o asgn8.o "..\\asgn8.c" 
+..\asgn8.c:49:1: warning: "/*" within comment [-Wcomment]
+ /*
+  
+..\asgn8.c:72:38: error: unknown type name 'node_t'; did you mean 'off_t'?
+ void ptof(unsigned int val, int age, node_t * frame){
+                                      ^~~~~~
+                                      off_t
+..\asgn8.c:84:5: error: unknown type name 'node_t'
+     node_t **array;
+     ^~~~~~
+..\asgn8.c: In function 'createQueue':
+..\asgn8.c:97:21: error: 'node_t' undeclared (first use in this function); did you mean 'off_t'?
+     queue->array = (node_t**) malloc((queue->capacity) * sizeof(node_t *));
+                     ^~~~~~
+                     off_t
+..\asgn8.c:97:21: note: each undeclared identifier is reported only once for each function it appears in
+..\asgn8.c:97:29: error: expected expression before ')' token
+     queue->array = (node_t**) malloc((queue->capacity) * sizeof(node_t *));
+                             ^
+..\asgn8.c: At top level:
+..\asgn8.c:117:34: error: unknown type name 'node_t'; did you mean 'off_t'?
+ int enqueue(struct Queue *queue, node_t * item){
+                                  ^~~~~~
+                                  off_t
+..\asgn8.c: In function 'dequeue':
+..\asgn8.c:138:51: error: request for member 'val' in something not a structure or union
+     unsigned int item = queue->array[queue->front]->val;
+                                                   ^~
+..\asgn8.c: In function 'checkInMemory':
+..\asgn8.c:180:24: error: request for member 'val' in something not a structure or union
+    if(physMem->array[i]->val == value){ //if page is found in memory
+                        ^~
+..\asgn8.c: In function 'shiftElements':
+..\asgn8.c:194:14: error: request for member 'val' in something not a structure or union
+   q->array[i]->val = q->array[i-1]->val;
+              ^~
+..\asgn8.c:194:35: error: request for member 'val' in something not a structure or union
+   q->array[i]->val = q->array[i-1]->val;
+                                   ^~
+..\asgn8.c:195:14: error: request for member 'empty' in something not a structure or union
+   q->array[i]->empty = q->array[i-1]->empty;
+              ^~
+..\asgn8.c:195:37: error: request for member 'empty' in something not a structure or union
+   q->array[i]->empty = q->array[i-1]->empty;
+                                     ^~
+..\asgn8.c: In function 'fifo':
+..\asgn8.c:212:3: error: unknown type name 'node_t'; did you mean 'off_t'?
+   node_t * newPage = newNode(); //create a new page
+   ^~~~~~
+   off_t
+..\asgn8.c:212:22: warning: implicit declaration of function 'newNode' [-Wimplicit-function-declaration]
+   node_t * newPage = newNode(); //create a new page
+                      ^~~~~~~
+..\asgn8.c:212:22: warning: initialization of 'int *' from 'int' makes pointer from integer without a cast [-Wint-conversion]
+..\asgn8.c:213:10: error: request for member 'empty' in something not a structure or union
+   newPage->empty = 0;
+          ^~
+..\asgn8.c:214:10: error: request for member 'val' in something not a structure or union
+   newPage->val = value;
+          ^~
+..\asgn8.c:216:4: warning: implicit declaration of function 'enqueue'; did you mean 'dequeue'? [-Wimplicit-function-declaration]
+    enqueue(physMem, newPage);
+    ^~~~~~~
+    dequeue
+..\asgn8.c: In function 'main':
+..\asgn8.c:289:2: warning: implicit declaration of function 'initList' [-Wimplicit-function-declaration]
+  initList();
+  ^~~~~~~~
+..\asgn8.c:310:2: error: unknown type name 'node_t'; did you mean 'off_t'?
+  node_t * temp = head;
+  ^~~~~~
+  off_t
+..\asgn8.c:310:18: error: 'head' undeclared (first use in this function); did you mean 'fread'?
+  node_t * temp = head;
+                  ^~~~
+                  fread
+..\asgn8.c:312:10: error: request for member 'previous' in something not a structure or union
+   if(temp->previous != NULL){
+          ^~
+..\asgn8.c:313:13: error: request for member 'previous' in something not a structure or union
+    free(temp->previous);
+             ^~
+..\asgn8.c:315:14: error: request for member 'next' in something not a structure or union
+   temp = temp->next;
+              ^~

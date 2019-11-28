@@ -1,0 +1,222 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int totalMemory; //total amount of memory in the system
+int algorithm; //algorithm to be used. 0 for first fit, 1 for best fit, 2 for worst fit
+int freeMemory;
+
+/*
+ * Nodes in the linked list represent memory
+ * at first one node with total memory to represent free
+ */
+typedef struct node {
+    int val;
+    int id; //process number, -1 if free memory
+    int currentAddress; //address of memory location
+    struct node * next;
+    struct node * previous;
+} node_t;
+node_t * head = NULL; //pointer that points to the first node in the list
+
+node_t * init_list(int val){
+	node_t * newNode = malloc(sizeof(node_t));
+	if (newNode == NULL) {
+	    return NULL;
+	}
+	newNode->next = NULL;
+	newNode->previous = NULL;
+	newNode->val = val;
+	newNode->id = -1;
+	newNode->currentAddress = 0;
+	return newNode;
+}
+
+void printList(node_t * head) {
+    node_t * ptr = head;
+    while (ptr != NULL) {
+    	if(ptr->id!=-1){
+    		printf("Process %d size: %d at address %d\n", ptr->id, ptr->val, ptr->currentAddress);
+    	}else{
+    		printf("Free memory of size %d at address %d\n", ptr->val, ptr->currentAddress);
+    	}
+        ptr = ptr->next;
+    }
+}
+
+void firstFit(int app_size, int app_id, node_t * ptr){
+	int isHead = 0, isTail = 0;
+	if(ptr==NULL){
+		return;
+	}
+	while(ptr != NULL){
+		if((ptr->val >= app_size) && (ptr->id == -1)){
+			if(ptr->previous == NULL){ //node is head of the list
+				isHead = 1;
+			}
+			if(ptr->next == NULL){ //node is tail of the list
+				isTail = 1;
+			}
+			node_t *newNode = malloc(sizeof(node_t));
+			if(isHead==1){
+				head = newNode;
+			}
+			newNode->currentAddress = ptr->currentAddress;
+			newNode->id = app_id;
+			newNode->val = app_size;
+			newNode->next = ptr;
+			newNode->previous = ptr->previous;
+			ptr->val -= app_size;
+			ptr->currentAddress += app_size;
+			if(isHead==0){
+				ptr->previous->next = newNode;
+			}
+			ptr->previous = newNode;
+			freeMemory -= app_size;
+			printf("Process %d of size %d created successfully at address %d\n", app_id, app_size, newNode->currentAddress);
+			if(ptr->val == 0){ //no more memory at that location, need to remove node
+				newNode->next = ptr->next;
+				if(isTail==0){ //if not tail node
+					ptr->next->previous = newNode;
+				}
+				free(ptr);
+			}
+			return;
+		}
+		ptr=ptr->next;
+	}
+	printf("NULL process %d failed to allocated %d memory\n", app_id, app_size);
+}
+
+void bestFit(int app_size, int app_id, node_t * ptr){
+	if(ptr==NULL){
+		return;
+	}
+	node_t * smallest = head;
+	int isHead = 0, isTail = 0;
+	while(ptr != NULL){
+		if((ptr->val >= app_size)&&(ptr->val < smallest->val)&&(ptr->id == -1)){
+			smallest = ptr;
+		}
+		ptr=ptr->next;
+	}
+	printf("===Smallest->val=%d===\n", smallest->val);
+	printf("===head->val=%d===\n", head->val);
+	if(ptr->previous == NULL){ //node is head of the list
+		isHead = 1;
+	}
+	if(ptr->next == NULL){ //node is tail of the list
+		isTail = 1;
+	}
+	node_t *newNode = malloc(sizeof(node_t));
+	if(isHead==1){
+		head = newNode;
+	}
+	newNode->currentAddress = ptr->currentAddress;
+	newNode->id = app_id;
+	newNode->val = app_size;
+	newNode->next = ptr;
+	newNode->previous = ptr->previous;
+	ptr->val -= app_size;
+	ptr->currentAddress += app_size;
+	if(isHead==0){
+		ptr->previous->next = newNode;
+	}
+	ptr->previous = newNode;
+	freeMemory -= app_size;
+	printf("Process %d of size %d created successfully at address %d\n", app_id, app_size, newNode->currentAddress);
+	if(ptr->val == 0){ //no more memory at that location, need to remove node
+		newNode->next = ptr->next;
+		if(isTail==0){ //if not tail node
+			ptr->next->previous = newNode;
+		}
+		free(ptr);
+	}
+}
+
+void terminate(int id, node_t * ptr){
+	//int isHead = 0, isTail = 0;
+	while(ptr != NULL){
+		if(ptr->id == id){
+			/*if(ptr->previous == NULL){ //node is head of the list
+				isHead = 1;
+			}
+			if(ptr->next == NULL){ //node is tail of the list
+				isTail = 1;
+			}
+
+			if((isHead==0)&&(isTail==0)){
+				ptr->previous->next = ptr->next;
+				ptr->next->previous = ptr->previous;
+				free(ptr);
+			}else if((isTail==1)&&(isHead==0)){
+				ptr->previous->next = ptr->next;
+				free(ptr);
+			}else if((isHead==1)&&(isTail==0)){
+				head = ptr->next;
+				ptr->next->previous = ptr->previous;
+				free(ptr);
+			}*/
+			ptr->id = -1;
+			freeMemory+=ptr->val;
+			printf("Process %d terminated successfully\n", id);
+			return;
+		}
+		ptr = ptr->next;
+	}
+	printf("Process %d failed to free memory.\n", id);
+}
+
+
+int main(int argv, char**argc){
+	if (argv != 4){
+		printf("Please enter command line arguments correctly.");
+		return 0;
+	}
+	//parsing total memory from input
+	char c;
+	sscanf(&argc[1][1], "%c", &c);
+	if((c=='s') || (c=='S')){
+		sscanf(&argc[2][0], "%i", &totalMemory);
+	}else{
+		printf("First command line argument must be total memory of the system.");
+		return 0;
+	}
+	freeMemory = totalMemory;
+
+	//parsing algorithm to be used from input
+	sscanf(&argc[3][1], "%c", &c);
+	if((c=='f')||(c=='F')){
+		algorithm = 0;
+	}else if((c=='b')||(c=='B')){
+		algorithm = 1;
+	}else if((c=='w')||(c=='W')){
+		algorithm = 2;
+	}else{
+		printf("Incorrect algorithm type.");
+		return 0;
+	}
+
+	head = init_list(totalMemory);
+
+	printf("%d, %d\ninput:\n", totalMemory, algorithm);
+
+	char input[10];
+	while(scanf("%s", input)!=EOF){
+		//printf("%s\n", input);
+	}
+
+	//firstFit(20, 3, head);
+	bestFit(50, 1, head);
+	printf("+++head=%d+++\n",head->val);
+	bestFit(100, 2, head);
+	bestFit(150, 3, head);
+	bestFit(200, 4, head);
+	bestFit(100, 5, head);
+	bestFit(70, 6, head);
+	bestFit(150, 7, head);
+
+	printList(head);
+	printf("Total free memory = %d\n", freeMemory);
+
+	return 0;
+}

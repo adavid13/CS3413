@@ -1,0 +1,211 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <limits.h>
+
+#define SIZE (int)pow(2,10) //size of page directory array as well as page table array
+
+typedef struct pageTableEntry{
+	int invalid; //1 if invalid, 0 if valid
+	int frame; //will hold the frame number
+	int age; //age of frame
+}ptEntry;
+
+typedef struct physicalMemoryEntry{
+	int empty; //1 if frame is empty, 0 if frame is occupied
+	int clean; //1 if frame is clean, 0 if frame is occupied
+	unsigned int offset; //the value to be stored in physical memory
+}pmEntry;
+
+int number_frames; //number of frames in physical memory taken as command line argument
+ptEntry ** page_dir; //an ptEntry pointer array of size 2^10 that will hold pointers (addresses) to page table
+pmEntry * phys_mem; //pmEntry array of size number_frames that will represent physical memory
+int globalAge = 0; //global counter to count "time" of program to be stored in pages for the LRU algorithm
+
+int pageMask = 0x3FF; //mask the middle 10 bits to get
+int offsetMask = 0xFFF; //mask to get the last 12 bits
+
+int emptyFrame = 0x80000000; //sets MSB to 1 to indicate frame is empty
+int occupiedMask = 0x7FFFFFFF; //AND will set MSB to 0 to indicate frame is not empty
+int cleanFrame = 0x40000000; //OR with a frame will set second MSB to 1 to indicate frame is clean, AND will check if frame is clean
+int dirtyMask = 0xBFFFFFFF; // AND will set second MSB to 0 to indicate frame is dirty
+
+int pageFault = 0; //counter for the number of page faults
+
+void init_pd(){
+	page_dir = (ptEntry **)malloc(SIZE*sizeof(ptEntry *)); //an array of ptEntry pointers
+	int i;
+	for(i=0; i<SIZE; i++){
+		page_dir[i] = NULL; //initialize all entries to NULL
+	}
+}
+
+/*
+ * An array of ptEntry structs
+ */
+ptEntry * init_pt(int sz){
+	ptEntry * pt = (ptEntry *)malloc(sizeof(ptEntry) * sz); //array of ptEntry's structs
+	if(pt == NULL){
+		return NULL;
+	}
+	int i;
+	for(i=0; i<sz; i++){
+		pt[i].invalid = 1; //set PT entry to invalid
+		pt[i].frame = 0; //set frame to empty
+		pt[i].age = 0; //set age to 0
+	}
+	return pt;
+}
+
+void init_phys_mem(int size){
+	phys_mem = (pmEntry *)malloc(size*sizeof(pmEntry));
+	int i;
+	for(i=0; i<size; i++){
+		phys_mem[i].empty = 1; //initialize all frames of physical memory to empty
+		phys_mem[i].clean = 1; //set frame as clean
+		phys_mem[i].offset = 0; //set value to 0
+	}
+}
+
+int findFrame(unsigned int offset){ //returns frame number if found an empty frame or -1 if not
+	int i;
+	for(i=0; i<number_frames; i++){
+		if(phys_mem[i].empty == 1){ //empty frame found
+			phys_mem[i].offset = offset; //copy offset to frame
+			phys_mem[i].empty = 0; //mark frame as not empty
+			return i;
+		}
+	}
+	return -1; //no empty frame found
+}
+/*
+ * Function finds a victim frame using the Recently Used Algorithm.
+ * The victim is a page that has not been used for the longest time.
+ * Prefer clean frame, if no clean frame found then use a dirty frame.
+ * Returns the index of the updated frame
+ */
+int replaceFrame(char access_type, unsigned int offset){
+	int i, victimFrame = 0, PDindex = 0, PTindex = 0, youngest = UINT_MAX;
+	//loop with preference for clean frames first
+	for(i=0; i<SIZE; i++){
+		if(page_dir[i]!=NULL){ //if page directory entry is not empty and there is a page table there
+			int j;
+			for(j=0; j<SIZE; j++){
+				if((page_dir[i][j].age < youngest)&&(phys_mem[page_dir[i][j].frame].clean == 1)){ // find the page with the smallest age
+					youngest = page_dir[i][j].age; //update youngest
+					victimFrame = page_dir[i][j].frame; //update victim frame
+					PDindex = i; //save the page directory index
+					PTindex = j; //save the page table index
+				}
+			}
+		}
+	}
+
+	if(youngest==UINT_MAX){ //if no clean frame was found
+		//loop trying to find a dirty frame
+		for(i=0; i<SIZE; i++){
+			if(page_dir[i]!=NULL){ //if page directory entry is not empty and there is a page table there
+				int j;
+				for(j=0; j<SIZE; j++){
+					if(page_dir[i][j].age < youngest){ // find the page with the smallest age
+						youngest = page_dir[i][j].age; //update youngest
+						victimFrame = page_dir[i][j].frame; //update victim frame
+						PDindex = i; //save the page directory index
+						PTindex = j; //save the page table index
+					}
+				}
+			}
+		}
+	}
+
+	page_dir[PDindex][PTindex].invalid = 1; //set victim page to invalid
+	page_dir[PDindex][PTindex].age = globalAge; //update victim page's age
+	phys_mem[victimFrame].offset = offset;
+	phys_mem[victimFrame].empty = 0;
+	phys_mem[victimFrame].clean = 1;
+
+	return victimFrame;
+}
+
+/*
+ * First check if page directory exists, if it does, check page table, if valid, you can use the frame that the page table entry points to
+ * If page directory entry exists but not page table, create one, find frame and use it
+ */
+void mem_mangement(unsigned long logical_address, char access_type, int age){
+	unsigned int pd = logical_address >> 22;
+	unsigned int pt = (logical_address >> 12) & pageMask;
+	unsigned int offset = logical_address & offsetMask;
+	//printf("access type = %c, logical address is = %lu, pd = %u, pt = %u, offset = %u\n", access_type, logical_address, pd, pt, offset);
+	if(!((access_type == 'r')||(access_type == 'w'))){
+		printf("Invalid access type\n");
+		return;
+	}
+	unsigned long int upperLim = (unsigned long int)pow(2,32);
+	if((logical_address > upperLim) || (logical_address < 0)){
+		printf("Invalid logical address\n");
+		return;
+	}
+	if(page_dir[pd] == NULL){ //if there is no entry in the page directory for that address
+		page_dir[pd] = init_pt(SIZE); //set PD entry as the ptr to the new PT
+		pageFault++; //increment page fault counter
+		int index = findFrame(offset); //find an empty frame
+		if(index!=-1){ //an empty frame was found
+			page_dir[pd][pt].frame = index; //update PT with frame index
+			page_dir[pd][pt].invalid = 0; //PT entry is now valid
+			printf("Logical address %lu -> physical address %d offset: %u\n", logical_address, index, phys_mem[index].offset);
+		}else{ //no empty frame was found
+			int index = replaceFrame(access_type, offset); //find a free frame
+			page_dir[pd][pt].frame = index;
+			page_dir[pd][pt].invalid = 0;
+			printf("Logical address %lu -> physical address %d offset: %u\n", logical_address, index, phys_mem[index].offset);
+		}
+
+	}else if((page_dir[pd] != NULL)&&(page_dir[pd][pt].invalid == 1)){ //if entry in PT is invalid
+		pageFault++; //increment page fault counter
+		int index = findFrame(offset); //find an empty frame
+		if(index!=-1){ //an empty frame was found
+			page_dir[pd][pt].frame = index;
+			page_dir[pd][pt].invalid = 0;
+			printf("Logical address %lu -> physical address %d offset: %u\n", logical_address, index, phys_mem[index].offset);
+		}else{ //no empty frame was found
+			int index = replaceFrame(access_type, offset); //find a free frame
+			page_dir[pd][pt].frame = index;
+			page_dir[pd][pt].invalid = 0;
+			printf("Logical address %lu -> physical address %d offset: %u\n", logical_address, index, phys_mem[index].offset);
+		}
+	}else if((page_dir[pd] != NULL)&&(page_dir[pd][pt].invalid == 0)){ //if PD entry exists and PT entry is valid
+		int index = page_dir[pd][pt].frame;
+		printf("Logical address %lu -> physical address %d offset: %u\n", logical_address, index, phys_mem[index].offset);
+	}
+}
+
+int main(int argc, char ** argv){
+	if(argc != 2){
+		printf("Incorrect command line arguments");
+		return 0;
+	}
+	sscanf(&argv[1][0], "%d", &number_frames);
+	printf("number of frames = %d\n", number_frames);
+
+	init_phys_mem(number_frames);
+	init_pd();
+
+	char access_type;
+	unsigned long logical_address;
+	while(scanf("%c ", &access_type)!=EOF){
+		scanf("%lu ", &logical_address);
+		globalAge++;
+		mem_mangement(logical_address, access_type, globalAge);
+	}
+
+	int i;
+	for(i=0; i<SIZE; i++){
+		if(page_dir[i]!=NULL){
+			free(page_dir[i]);
+		}
+	}
+	free(page_dir);
+	free(phys_mem);
+	return 0;
+}

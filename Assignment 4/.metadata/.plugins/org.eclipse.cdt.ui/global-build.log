@@ -1,0 +1,26 @@
+15:07:39 **** Incremental Build of configuration Debug for project Assignment4 ****
+Info: Internal Builder is used for build
+gcc -O0 -g3 -Wall -c -fmessage-length=0 -o as4.o "..\\as4.c" 
+..\as4.c: In function 'barber':
+..\as4.c:82:6: warning: unused variable 'yhis' [-Wunused-variable]
+  int yhis = 0;
+      ^~~~
+..\as4.c: In function 'main':
+..\as4.c:118:6: warning: unused variable 'count' [-Wunused-variable]
+  int count = 0, id = 0;
+      ^~~~~
+..\as4.c:100:6: warning: unused variable 'wr_chairs' [-Wunused-variable]
+  int wr_chairs[wr_cnum]; //array of waiting room chairs, will take on the id's of the customers
+      ^~~~~~~~~
+..\as4.c:99:6: warning: unused variable 'barbers' [-Wunused-variable]
+  int barbers[3]; //array of barbers,
+      ^~~~~~~
+..\as4.c:98:6: warning: unused variable 'barber_chairs' [-Wunused-variable]
+  int barber_chairs[3]; //array of barber chairs, will take on 1 occupied and 0 as not occupied
+      ^~~~~~~~~~~~~
+..\as4.c: In function 'barber':
+..\as4.c:84:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+gcc -o Assignment4.exe as4.o 
+Info: Nothing to build for Assignment4

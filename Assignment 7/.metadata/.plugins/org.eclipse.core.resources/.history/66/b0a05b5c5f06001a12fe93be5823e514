@@ -1,0 +1,18 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+
+int main(int argc, char ** argv){
+	if(argc != 2){
+		printf("Incorrect command line arguments");
+		return 0;
+	}
+	long int number_frames = 0;
+	sscanf(&argv[1][0], "%ld", &number_frames);
+
+	printf("number of frames = %ld", number_frames);
+
+
+
+	return 0;
+}

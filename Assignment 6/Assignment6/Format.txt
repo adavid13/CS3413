@@ -1,0 +1,1 @@
+a.exe -s 2500 -w < input.txt
