@@ -1,2 +1,0 @@
-User	Process	Arrival	Duration
-Jim	A	2	5

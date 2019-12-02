@@ -1,5 +1,0 @@
-User Process Arrival Duration Deadline
-Jim	A	2	5	8
-Mary	B	2	3	10
-Sue	D	5	5	11
-Mary	C	6	2	7
